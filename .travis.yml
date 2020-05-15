@@ -1,0 +1,24 @@
+language: go
+
+go:
+  - 1.14.x
+
+env:
+  - GO111MODULE=on
+
+script:
+  - make travis
+  - ls -l bin
+
+deploy:
+  provider: releases
+  api_key:
+    secure: KBsfkJB7GyX2DaA+yEzTJZ/7WNLpqckKacCatdKMFVvKBpB0jwBvApaFWMlsWbmK2Q9nLQo81rY/xeYlFntgV09yQ8/2UNnpP2edFiiE/d2XehOYJHVJGB7k/va/cpVNOi1pkYZmJNTecpsIXZtmHPu0Ppf0GDcAbvzcSw1ISPjMnJmOo9upE8o2oS1E9VPLNsDeu4eMAcmtoRhcQFhSTmCBiW1+Ue80LokeAt/ePA2Xf84QMNeOFdPeukPWnGCkUBnYuiQOLRSAJMsOF5NGDapfUNjGshn3JJdp/8QzDbGY8fgktteihXvwon4nZhUvgCLdlcxSNe0orW0FHFS+b/qr+OCrkkFxUzvFPHtgeWchHrcTh4RvVgw2ryLfZR+t6myqBhBzSL7XzlMXPOnHkfPRnGIKi+8gKFkqP7Rp8Btsy0K7OCJ3QeTidul/fppVpveCy3gPjrecuAWGMaFZ4w07RG5Fjwe+kF6/raTZ2a3iuCYU05PSqBSiLYx2g7QiU44in2Xr1UIxRyYLcdDSenBAoGOkxSNgd++uUl+dsand7dfturoeZDSSwlPI9I6KMPQPtg77MXzGvsrqhbYi6d/DTvhJKqdx2rHJotG6dtCE0s1zem9nKMleHor91WOPm/K/0/0+Qbfz+6Xa9OZ6Nw86k1xUASr1KC/NGDpy68s=
+  skip_cleanup: true
+  file:
+    - bin/merge-raml-darwin.${TRAVIS_TAG}.tar.gz
+    - bin/merge-raml-linux.${TRAVIS_TAG}.tar.gz
+    - bin/merge-raml-windows.${TRAVIS_TAG}.zip
+  on:
+    repo: VEuPathDB/script-raml-merge
+    tags: true
