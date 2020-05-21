@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/Foxcapades/Argonaut v0.1.7
-	github.com/Foxcapades/lib-go-raml-types v0.2.6
+	github.com/Foxcapades/lib-go-raml-types v0.2.7
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/onsi/ginkgo v1.12.0 // indirect
