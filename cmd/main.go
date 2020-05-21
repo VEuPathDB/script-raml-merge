@@ -15,7 +15,7 @@ var version = "untagged-dev-version"
 
 func main() {
 	var verbose bool
-	var path    string
+	var path string
 
 	logrus.SetFormatter(new(prefixed.TextFormatter))
 

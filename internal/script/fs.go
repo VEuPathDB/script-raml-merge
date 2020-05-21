@@ -14,18 +14,21 @@ func getFiles(path string) map[string]bool {
 		if err != nil {
 			return err
 		}
+
 		if info.IsDir() {
 			return nil
 		}
+
 		if !strings.HasSuffix(path, ".raml") {
 			logrus.Trace("Skipping non-file path", path)
 			return nil
 		}
-		logrus.Trace(path)
+
 		if filepath.Base(path) == "library.raml" {
 			logrus.Debugf("Skipping %s", path)
 			return nil
 		}
+
 		files[path] = true
 		return nil
 	})
