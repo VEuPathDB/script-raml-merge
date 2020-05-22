@@ -1,0 +1,20 @@
+= RAML Merge
+
+Simple script to merge raml libraries into a single library more
+easily consumable by RAML tools that are not fully compliant
+with the spec.
+
+.Usage
+[source, sh-session]
+----
+$ ./merge-raml path/to/libraries
+#%RAML 1.0 Library
+
+types:
+  File1Type1:
+    ...
+  File1Type2:
+    ...
+  File2Type1:
+    ...
+----
