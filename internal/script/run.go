@@ -1,9 +1,9 @@
 package script
 
 import (
-	"github.com/Foxcapades/lib-go-raml-types/v0/pkg/raml"
-	"github.com/Foxcapades/lib-go-raml-types/v0/pkg/raml/rmeta"
-	"github.com/Foxcapades/lib-go-raml-types/v0/pkg/raml/rparse"
+	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml"
+	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml/rmeta"
+	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml/rparse"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"os"

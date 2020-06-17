@@ -1,8 +1,8 @@
 package script
 
 import (
-	"github.com/Foxcapades/lib-go-raml-types/v0/pkg/raml"
-	"github.com/Foxcapades/lib-go-raml-types/v0/pkg/raml/rbuild"
+	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml"
+	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml/rbuild"
 	"github.com/sirupsen/logrus"
 	"path"
 	"path/filepath"
