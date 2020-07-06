@@ -45,6 +45,7 @@ func ProcessRaml(path string) string {
 		if err != nil {
 			logrus.Fatalf("Could not parse %s: %s", file, err)
 		}
+
 		libs[file] = lib
 	}
 
