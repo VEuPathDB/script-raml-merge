@@ -4,6 +4,7 @@ import (
 	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml"
 	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml/rbuild"
 	"github.com/sirupsen/logrus"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -20,14 +21,19 @@ func merge(files map[string]bool, libs map[string]raml.Library) raml.Library {
 	out := rbuild.NewLibrary()
 
 	for file, lib := range libs {
+		dir := filepath.Dir(file)
 
 		lib.Uses().ForEach(func(name, ref string) {
-			upd := path.Join(filepath.Dir(file), ref)
+			path := path.Join(dir, ref)
 
-			if _, ok := files[upd]; ok {
+			if fileExists(path) {
+				ref = path
+			}
+
+			if _, ok := files[ref]; ok {
 				cleanup(name, lib.Types())
 			} else {
-				out.Uses().Put(name, upd)
+				out.Uses().Put(name, ref)
 			}
 		})
 
@@ -78,4 +84,12 @@ func clean(full string) func(string, raml.DataType) {
 			clean(full)(full, tmp.Items())
 		}
 	}
+}
+
+func fileExists(ref string) bool {
+	_, err := os.Stat(ref)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return true
 }

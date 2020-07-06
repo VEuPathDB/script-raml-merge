@@ -1,10 +1,11 @@
 package script
 
 import (
-	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 func getFiles(path string) map[string]bool {
