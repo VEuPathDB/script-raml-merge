@@ -5,8 +5,8 @@ github.com/Foxcapades/gomp v1.3.1 h1:P2CEhYlr4tIDUgGTDNm81sC2a/gqz2hl6XELNwy7754
 github.com/Foxcapades/gomp v1.3.1/go.mod h1:W8OA6hTip97ihS0ia6rMsbT5V3JEWXxueoJRcU28ajU=
 github.com/Foxcapades/goop v1.0.1 h1:AXKiuhDU4dmzrz8G2tJObaDVnFD9xF839OrQ9nf1wOk=
 github.com/Foxcapades/goop v1.0.1/go.mod h1:b3aNWZeWduy0Kl4bISx+MHOq3Ll6Tb0Q2M78ZmdJ/DM=
-github.com/Foxcapades/lib-go-raml v0.4.0 h1:ZUc54IYRsCsqCC0vUIIIvVBsJ6ZL67hDn+oQ6uagZ+U=
-github.com/Foxcapades/lib-go-raml v0.4.0/go.mod h1:6r9+1idKzms3koWP2qPf/AukYqT++h5zPoNoJ5Z/KDs=
+github.com/Foxcapades/lib-go-raml v0.4.1 h1:dixP+k/kZEaux70++1TUj0De0QwsZ4klyuM+7Aw7t7c=
+github.com/Foxcapades/lib-go-raml v0.4.1/go.mod h1:6r9+1idKzms3koWP2qPf/AukYqT++h5zPoNoJ5Z/KDs=
 github.com/Foxcapades/lib-go-yaml v1.3.4 h1:eWqtLFmClpz5i4Zd0ZclpflrZjiFPV88Y+HDroPwrbM=
 github.com/Foxcapades/lib-go-yaml v1.3.4/go.mod h1:cv5Epb1k6/GKqVVbYr4b18jMnwk0DUCfzKOKfnsL0BA=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
