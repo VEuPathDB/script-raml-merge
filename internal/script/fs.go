@@ -18,12 +18,14 @@ func getFiles(path string) FileIndex {
 			return err
 		}
 
+		logrus.Tracef("Examining path %s", path)
+
 		if info.IsDir() {
 			return nil
 		}
 
 		if !strings.HasSuffix(path, ".raml") {
-			logrus.Trace("Skipping non-file path", path)
+			logrus.Debugf("Skipping non-file path", path)
 			return nil
 		}
 

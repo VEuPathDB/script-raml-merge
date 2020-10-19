@@ -14,13 +14,14 @@ import (
 var version = "untagged-dev-version"
 
 func main() {
-	var verbose bool
+	var verbose uint8
 	var path string
 
 	logrus.SetFormatter(new(prefixed.TextFormatter))
 
 	cli.NewCommand().
-		Flag(cli.SFlag('v', "Verbose process logging").Bind(&verbose, false)).
+		Flag(cli.SFlag('v', "Verbose process logging").
+			OnHit(func(flag argo.Flag) { verbose++ })).
 		Flag(cli.SlFlag('V', "version", "Print tool version").
 			OnHit(func(argo.Flag) {
 				fmt.Println(version)
@@ -29,8 +30,10 @@ func main() {
 		Arg(cli.NewArg().Name("RAML path").Require().Bind(&path)).
 		MustParse()
 
-	if verbose {
+	if verbose == 1 {
 		logrus.SetLevel(logrus.DebugLevel)
+	} else if verbose > 1 {
+		logrus.SetLevel(logrus.TraceLevel)
 	}
 	logrus.SetOutput(os.Stderr)
 

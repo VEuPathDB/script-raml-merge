@@ -57,6 +57,7 @@ func sortingHat(files FileIndex) (out *RamlFiles) {
 	}
 
 	for path := range files {
+		logrus.Tracef("Sorting raml type for file %s", path)
 		node := new(yaml.Node)
 
 		data, err := ioutil.ReadFile(path)
@@ -71,15 +72,21 @@ func sortingHat(files FileIndex) (out *RamlFiles) {
 			panic(nil)
 		}
 
+		if len(node.Content) == 0 {
+			logrus.Debugf("Skipping empty fragment: %s", path)
+			continue
+		}
+
 		parts := strings.Split(node.HeadComment, " ")
 		if len(parts) < 3 {
+			logrus.Tracef("Header: %s", parts)
 			logrus.Fatalf("Untyped RAML fragment: %s", path)
 			panic(nil)
 		}
 
 		if parts[2] == "Library" {
 			tmp := rbuild.NewLibrary()
-			err = tmp.UnmarshalYAML(node)
+			err = tmp.UnmarshalYAML(node.Content[0])
 			if err != nil {
 				logrus.Fatal(err)
 				panic(nil)
@@ -87,7 +94,7 @@ func sortingHat(files FileIndex) (out *RamlFiles) {
 			out.Libs[path] = tmp
 		} else if parts[2] == "DataType" {
 			tmp := rbuild.NewAnyDataType()
-			err = tmp.UnmarshalRAML(node)
+			err = tmp.UnmarshalRAML(node.Content[0])
 			if err != nil {
 				logrus.Fatal(err)
 				panic(nil)

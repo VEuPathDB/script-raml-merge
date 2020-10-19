@@ -1,6 +1,7 @@
 package script
 
 import (
+	"github.com/Foxcapades/goop/v1/pkg/option"
 	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml"
 	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml/rbuild"
 	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml/rmeta"
@@ -59,23 +60,38 @@ func merge(files map[string]bool, types *RamlFiles) raml.Library {
 		})
 	}
 
-	for _, dt := range types.Types {
-		// check if the datatype definition is doing it's own imports
-		if !dt.ExtraFacets().Has("uses") {
+	logrus.Debug("Resolving imports in DataType files")
+	for file, dt := range types.Types {
+		var uses *yaml.Node
+
+		dt.ExtraFacets().ForEach(func(k interface{}, v interface{}) {
+			if k.(string) == "uses" {
+				uses = v.(*yaml.Node)
+			}
+		})
+
+		if uses == nil {
+			logrus.Tracef("Skipping DataType file with no imports: %s", file)
 			continue
+		} else {
+			logrus.Tracef("Processing imports for DataType: %s", file)
 		}
 
-		rawRef, _ := dt.ExtraFacets().Get("uses")
-		node := rawRef.(*yaml.Node)
-		_ = xyml.MapForEach(node, func(k, v *yaml.Node) error {
+		dir := filepath.Dir(file)
+
+			_ = xyml.MapForEach(uses, func(k, v *yaml.Node) error {
 			name := k.Value
-			ref  := v.Value
+			ref  := fixPath(dir, v.Value)
 
 			if _, ok := files[ref]; ok {
+				logrus.Tracef("Cleaning references for: %s: %s", name, ref)
 				cleanRef(name + ".")("", dt)
 			} else {
+				logrus.Tracef("Import %s file not found in file index: %s", name, ref)
 				out.Uses().Put(name, ref)
 			}
+
+			dt.ExtraFacets().Delete("uses")
 
 			return nil
 		})
@@ -101,13 +117,14 @@ func cleanupRefs(key string, types raml.DataTypeMap) {
 	types.ForEach(cleanRef(key + "."))
 }
 
-func cleanupProps(key string, types raml.PropertyMap) {
-	fn := cleanRef(key)
-	types.ForEach(func(k string, v raml.Property) { fn(k, v) })
-}
-
 func cleanRef(prefix string) func(string, raml.DataType) {
-	return func(_ string, kind raml.DataType) {
+	return func(s string, kind raml.DataType) {
+		if len(s) == 0 {
+			s = "undefined"
+		}
+
+		logrus.Tracef("Cleaning type: %s", s)
+
 		if strings.HasPrefix(kind.Type(), prefix) {
 			kind.OverrideType(kind.Type()[len(prefix):])
 		}
@@ -116,11 +133,46 @@ func cleanRef(prefix string) func(string, raml.DataType) {
 			cleanupProps(prefix, tmp.Properties())
 		}
 
+		if tmp, ok := kind.(raml.AnyType); ok {
+			cleanupProps1(prefix, tmp.ExtraFacets().GetOpt("properties"))
+		}
+
 		if tmp, ok := kind.(raml.ArrayType); ok {
 			cleanRef(prefix)(prefix, tmp.Items())
 		}
 	}
 }
+
+func cleanupProps(key string, types raml.PropertyMap) {
+	fn := cleanRef(key)
+	types.ForEach(func(k string, v raml.Property) { fn(k, v) })
+}
+
+func cleanupProps1(prefix string, types option.Untyped) {
+	if types.IsNil() {
+		return
+	}
+
+	xyml.MapForEach(types.Get().(*yaml.Node), cleanupProps2(prefix))
+}
+
+func cleanupProps2(prefix string) func(k, v *yaml.Node) error {
+	return func(k, v *yaml.Node) error {
+		if xyml.IsString(v) {
+			if strings.HasPrefix(v.Value, prefix) {
+				v.Value = v.Value[len(prefix):]
+			}
+			return nil
+		}
+
+		if xyml.IsMap(v) {
+			return xyml.MapForEach(v, cleanupProps2(prefix))
+		}
+
+		return nil
+	}
+}
+
 
 func fixPath(dir, file string) string {
 	path := filepath.Clean(filepath.Join(dir, file))
