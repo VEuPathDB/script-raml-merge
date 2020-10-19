@@ -8,8 +8,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func getFiles(path string) map[string]bool {
-	files := make(map[string]bool)
+type FileIndex map[string] bool
+
+func getFiles(path string) FileIndex {
+	files := make(FileIndex)
 
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

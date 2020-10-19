@@ -3,9 +3,11 @@ package script
 import (
 	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml"
 	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml/rbuild"
+	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml/rmeta"
+	"github.com/Foxcapades/lib-go-yaml/v1/pkg/xyml"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 )
@@ -15,12 +17,12 @@ const (
 	logErrFatal    = "Cannot merge RAML files"
 )
 
-func merge(files map[string]bool, libs map[string]raml.Library) raml.Library {
+func merge(files map[string]bool, types *RamlFiles) raml.Library {
 	typeToFile := make(map[string][]string)
 
 	out := rbuild.NewLibrary()
 
-	for file, lib := range libs {
+	for file, lib := range types.Libs {
 		dir := filepath.Dir(file)
 
 		lib.Uses().ForEach(func(name, ref string) {
@@ -33,6 +35,7 @@ func merge(files map[string]bool, libs map[string]raml.Library) raml.Library {
 			}
 		})
 
+		// Index type names to library file paths
 		lib.Types().ForEach(func(name string, def raml.DataType) {
 			if _, ok := typeToFile[name]; ok {
 				typeToFile[name] = append(typeToFile[name], file)
@@ -40,7 +43,41 @@ func merge(files map[string]bool, libs map[string]raml.Library) raml.Library {
 				typeToFile[name] = []string{file}
 			}
 
-			out.Types().Put(name, def)
+			if def.Kind() == rmeta.TypeInclude {
+				path := fixPath(dir, strings.TrimSpace(
+					strings.ReplaceAll(def.Type(), "!include", ""),
+				))
+
+				if dt, ok := types.Types[path]; ok {
+					out.Types().Put(name, dt)
+				} else {
+					out.Types().Put(name, def)
+				}
+			} else {
+				out.Types().Put(name, def)
+			}
+		})
+	}
+
+	for _, dt := range types.Types {
+		// check if the datatype definition is doing it's own imports
+		if !dt.ExtraFacets().Has("uses") {
+			continue
+		}
+
+		rawRef, _ := dt.ExtraFacets().Get("uses")
+		node := rawRef.(*yaml.Node)
+		_ = xyml.MapForEach(node, func(k, v *yaml.Node) error {
+			name := k.Value
+			ref  := v.Value
+
+			if _, ok := files[ref]; ok {
+				cleanRef(name + ".")("", dt)
+			} else {
+				out.Uses().Put(name, ref)
+			}
+
+			return nil
 		})
 	}
 
@@ -69,24 +106,24 @@ func cleanupProps(key string, types raml.PropertyMap) {
 	types.ForEach(func(k string, v raml.Property) { fn(k, v) })
 }
 
-func cleanRef(full string) func(string, raml.DataType) {
+func cleanRef(prefix string) func(string, raml.DataType) {
 	return func(_ string, kind raml.DataType) {
-		if strings.HasPrefix(kind.Type(), full) {
-			kind.OverrideType(kind.Type()[len(full):])
+		if strings.HasPrefix(kind.Type(), prefix) {
+			kind.OverrideType(kind.Type()[len(prefix):])
 		}
 
 		if tmp, ok := kind.(raml.ObjectType); ok {
-			cleanupProps(full, tmp.Properties())
+			cleanupProps(prefix, tmp.Properties())
 		}
 
 		if tmp, ok := kind.(raml.ArrayType); ok {
-			cleanRef(full)(full, tmp.Items())
+			cleanRef(prefix)(prefix, tmp.Items())
 		}
 	}
 }
 
 func fixPath(dir, file string) string {
-	path := path.Join(dir, file)
+	path := filepath.Clean(filepath.Join(dir, file))
 
 	if fileExists(path) {
 		return path
