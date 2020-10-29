@@ -1,16 +1,18 @@
 package script
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
+
 	"github.com/Foxcapades/goop/v1/pkg/option"
 	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml"
 	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml/rbuild"
 	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml/rmeta"
 	"github.com/Foxcapades/lib-go-yaml/v1/pkg/xyml"
-	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 const (
@@ -19,30 +21,30 @@ const (
 )
 
 func merge(files map[string]bool, types *RamlFiles) raml.Library {
-	typeToFile := make(map[string][]string)
+	conflicts := make(TypeToFiles, 100)
 
 	out := rbuild.NewLibrary()
+
+	// Recursively resolve all imports
+	for file, lib := range types.Libs {
+		conflicts.Merge(ResolveUses(filepath.Dir(file), lib.Uses(), files, types))
+	}
+	for file, dt := range types.Types {
+		if mp := ParseDTUses(file, dt); mp != nil {
+			conflicts.Merge(ResolveUses(filepath.Dir(file), mp, files, types))
+		}
+	}
 
 	for file, lib := range types.Libs {
 		dir := filepath.Dir(file)
 
-		lib.Uses().ForEach(func(name, ref string) {
-			ref = fixPath(dir, ref)
-
-			if _, ok := files[ref]; ok {
-				cleanupRefs(name, lib.Types())
-			} else {
-				out.Uses().Put(name, ref)
-			}
+		lib.Uses().ForEach(func(name, _ string) {
+			cleanupRefs(name, lib.Types())
 		})
 
 		// Index type names to library file paths
 		lib.Types().ForEach(func(name string, def raml.DataType) {
-			if _, ok := typeToFile[name]; ok {
-				typeToFile[name] = append(typeToFile[name], file)
-			} else {
-				typeToFile[name] = []string{file}
-			}
+			conflicts.Append(name, file)
 
 			if def.Kind() == rmeta.TypeInclude {
 				path := fixPath(dir, strings.TrimSpace(
@@ -60,46 +62,11 @@ func merge(files map[string]bool, types *RamlFiles) raml.Library {
 		})
 	}
 
-	logrus.Debug("Resolving imports in DataType files")
-	for file, dt := range types.Types {
-		var uses *yaml.Node
-
-		dt.ExtraFacets().ForEach(func(k interface{}, v interface{}) {
-			if k.(string) == "uses" {
-				uses = v.(*yaml.Node)
-			}
-		})
-
-		if uses == nil {
-			logrus.Tracef("Skipping DataType file with no imports: %s", file)
-			continue
-		} else {
-			logrus.Tracef("Processing imports for DataType: %s", file)
-		}
-
-		dir := filepath.Dir(file)
-
-			_ = xyml.MapForEach(uses, func(k, v *yaml.Node) error {
-			name := k.Value
-			ref  := fixPath(dir, v.Value)
-
-			if _, ok := files[ref]; ok {
-				logrus.Tracef("Cleaning references for: %s: %s", name, ref)
-				cleanRef(name + ".")("", dt)
-			} else {
-				logrus.Tracef("Import %s file not found in file index: %s", name, ref)
-				out.Uses().Put(name, ref)
-			}
-
-			dt.ExtraFacets().Delete("uses")
-
-			return nil
-		})
-	}
-
 	err := false
 
-	for key, val := range typeToFile {
+	for key := range conflicts {
+		val := conflicts.GetFilesFor(key)
+
 		if len(val) > 1 {
 			logrus.Errorf(logErrConflict, key, strings.Join(val, "\n  "))
 			err = true
@@ -153,7 +120,7 @@ func cleanupProps1(prefix string, types option.Untyped) {
 		return
 	}
 
-	xyml.MapForEach(types.Get().(*yaml.Node), cleanupProps2(prefix))
+	_ = xyml.MapForEach(types.Get().(*yaml.Node), cleanupProps2(prefix))
 }
 
 func cleanupProps2(prefix string) func(k, v *yaml.Node) error {
