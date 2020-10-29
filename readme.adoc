@@ -1,5 +1,7 @@
 = RAML Merge
 
+image:https://travis-ci.org/VEuPathDB/script-raml-merge.svg?branch=master["Build Status", link="https://travis-ci.org/VEuPathDB/script-raml-merge"]
+
 Simple script to merge raml libraries into a single library more
 easily consumable by RAML tools that are not fully compliant
 with the spec.
