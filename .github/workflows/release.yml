@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags:
+    - v*
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get Release Version
+      id: version_num
+      run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d/ -f3)
+
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.15
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test
+      run: go test -v ./...
+
+    - name: Build Release Binaries
+      run: make release
+
+    - name: Create Draft Release
+      uses: actions/create-release@v1
+      id: draft
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version_num.outputs.VERSION }}
+        release_name: Version ${{ steps.version_num.outputs.VERSION }}
+        draft: true
+        prerelease: false
+
+    - name: Publish Binaries
+      uses: skx/github-action-publish-binaries@release-0.14
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        releaseId: ${{ steps.draft.outputs.id }}
+        args: 'bin/*'
+
+    - name: Publish Release
+      uses: eregon/publish-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        release_id: ${{ steps.draft.outputs.id }}
