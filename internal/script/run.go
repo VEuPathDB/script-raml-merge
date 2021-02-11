@@ -1,14 +1,13 @@
 package script
 
 import (
-	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml"
-	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml/rbuild"
-	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml/rmeta"
-	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
-	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml"
+	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml/rbuild"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 )
 
 const generated = `
@@ -37,7 +36,7 @@ func ProcessRaml(path string) string {
 	types := sortingHat(paths)
 
 	out := strings.Builder{}
-	out.WriteString(rmeta.HeaderLibrary)
+	out.WriteString("#%RAML 1.0 Library")
 	out.WriteString(generated)
 
 	enc := yaml.NewEncoder(&out)
@@ -57,53 +56,65 @@ func sortingHat(files FileIndex) (out *RamlFiles) {
 	}
 
 	for path := range files {
-		logrus.Tracef("Sorting raml type for file %s", path)
-		node := new(yaml.Node)
-
-		data, err := ioutil.ReadFile(path)
-		if err != nil {
-			logrus.Fatal(err)
-			panic(nil)
-		}
-
-		err = yaml.Unmarshal(data, node)
-		if err != nil {
-			logrus.Fatal(err)
-			panic(nil)
-		}
-
-		if len(node.Content) == 0 {
-			logrus.Debugf("Skipping empty fragment: %s", path)
-			continue
-		}
-
-		parts := strings.Split(node.HeadComment, " ")
-		if len(parts) < 3 {
-			logrus.Tracef("Header: %s", parts)
-			logrus.Fatalf("Untyped RAML fragment: %s", path)
-			panic(nil)
-		}
-
-		if parts[2] == "Library" {
-			tmp := rbuild.NewLibrary()
-			err = tmp.UnmarshalYAML(node.Content[0])
-			if err != nil {
-				logrus.Fatal(err)
-				panic(nil)
-			}
-			out.Libs[path] = tmp
-		} else if parts[2] == "DataType" {
-			tmp := rbuild.NewAnyDataType()
-			err = tmp.UnmarshalRAML(node.Content[0])
-			if err != nil {
-				logrus.Fatal(err)
-				panic(nil)
-			}
-			out.Types[path] = tmp
-		}
+		sortFile(path, out)
 	}
 
 	return
+}
+
+func sortFile(path string, out *RamlFiles) {
+	logrus.Tracef("Sorting raml type for file %s", path)
+	node := new(yaml.Node)
+
+	file, err := os.Open(path)
+	if err != nil {
+		logrus.Fatal(err)
+		panic(nil)
+	}
+	defer file.Close()
+
+	dec := yaml.NewDecoder(file)
+	err = dec.Decode(node)
+	if err != nil {
+		logrus.Fatal(err)
+		panic(nil)
+	}
+
+	if len(node.Content) == 0 {
+		logrus.Debugf("Skipping empty fragment: %s", path)
+		return
+	}
+
+	parts := strings.Fields(node.HeadComment)
+	logrus.Debug(node)
+	if len(parts) < 3 {
+		logrus.Tracef("Header: %s", parts)
+		logrus.Fatalf("Untyped RAML fragment: %s", path)
+		panic(nil)
+	}
+
+	if parts[2] == "Library" {
+		logrus.Debugf("Sorted as library")
+		tmp := rbuild.NewLibrary()
+		err = tmp.UnmarshalYAML(node.Content[0])
+		if err != nil {
+			logrus.Fatal(err)
+			panic(nil)
+		}
+		out.Libs[path] = tmp
+	} else if parts[2] == "DataType" {
+		logrus.Debugf("Sorted as typedef")
+		tmp := rbuild.NewAnyDataType()
+		err = tmp.UnmarshalRAML(node.Content[0])
+		if err != nil {
+			logrus.Fatal(err)
+			panic(nil)
+		}
+		out.Types[path] = tmp
+	} else {
+		logrus.Debugf("Failed to sort RAML file")
+		logrus.Debugf("Header: %s", parts)
+	}
 }
 
 type RamlFiles struct {

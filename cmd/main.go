@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/Foxcapades/Argonaut/v0"
 	"github.com/Foxcapades/Argonaut/v0/pkg/argo"
 	"github.com/sirupsen/logrus"
 	"github.com/x-cray/logrus-prefixed-formatter"
-	"os"
 
 	"script-raml-merger/internal/script"
 )

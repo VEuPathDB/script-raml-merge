@@ -10,6 +10,8 @@ import (
 
 type FileIndex map[string] bool
 
+// getFiles returns all the raml files present in the given directory and it's
+// sub-directories.
 func getFiles(path string) FileIndex {
 	files := make(FileIndex)
 
