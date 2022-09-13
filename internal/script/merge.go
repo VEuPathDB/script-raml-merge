@@ -21,21 +21,23 @@ const (
 )
 
 func merge(files map[string]bool, types *RamlFiles) raml.Library {
-	conflicts := make(TypeToFiles, 100)
+	conflicts := make(TypeNameToParentFileMap, 100)
 
 	out := rbuild.NewLibrary()
 
 	// Recursively resolve all imports
 	for file, lib := range types.Libs {
-		conflicts.Merge(ResolveUses(filepath.Dir(file), lib.Uses(), files, types))
+		conflicts.Merge(ResolveUsesFiles(filepath.Dir(file), lib.Uses(), files, types))
 	}
 	for file, dt := range types.Types {
 		if mp := ParseDTUses(file, dt); mp != nil {
-			conflicts.Merge(ResolveUses(filepath.Dir(file), mp, files, types))
+			conflicts.Merge(ResolveUsesFiles(filepath.Dir(file), mp, files, types))
 		}
 	}
 
 	for file, lib := range types.Libs {
+		logrus.Debugf("Processing library file: %s", file)
+
 		dir := filepath.Dir(file)
 
 		lib.Uses().ForEach(func(name, _ string) {
@@ -81,7 +83,11 @@ func merge(files map[string]bool, types *RamlFiles) raml.Library {
 }
 
 func cleanupRefs(key string, types raml.DataTypeMap) {
-	types.ForEach(cleanRef(key + "."))
+	refPrefix := key + "."
+
+	logrus.Debugf("Cleaning references for prefix \"%s\"", refPrefix)
+
+	types.ForEach(cleanRef(refPrefix))
 }
 
 func cleanRef(prefix string) func(string, raml.DataType) {
@@ -98,6 +104,10 @@ func cleanRef(prefix string) func(string, raml.DataType) {
 
 		if tmp, ok := kind.(raml.ObjectType); ok {
 			cleanupProps(prefix, tmp.Properties())
+		}
+
+		if tmp, ok := kind.(raml.CustomType); ok {
+			cleanupProps1(prefix, tmp.ExtraFacets().GetOpt("properties"))
 		}
 
 		if tmp, ok := kind.(raml.AnyType); ok {
@@ -140,7 +150,7 @@ func cleanupProps2(prefix string) func(k, v *yaml.Node) error {
 	}
 }
 
-
+// fixPath attempts to correct the given possibly relative path
 func fixPath(dir, file string) string {
 	path := filepath.Clean(filepath.Join(dir, file))
 

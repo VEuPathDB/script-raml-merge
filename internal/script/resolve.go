@@ -26,21 +26,100 @@ const (
 	errReadFail      = "Failed to read file contents from "
 )
 
-// TypeToFiles is a mapping of type names to files in which that type name
-// appears.
+// TypeNameToParentFileMap is a mapping of type names to parent files in which
+// those type names appear.
 //
-// This is used for type conflict detection.
-type TypeToFiles map[string]map[string]bool
+// This is used for type definition conflict detection, i.e. detecting when more
+// than one type is defined with the same name in the scope of the RAML files.
+//
+// Example:
+//   {
+//     "MyRamlType": {
+//       "file1.raml": true,
+//     },
+//     "MyOtherRamlType": {
+//       "file1.raml": true,
+//       "file2.raml": true,
+//     }
+//   }
+type TypeNameToParentFileMap map[string]map[string]bool
 
-func (t TypeToFiles) Append(name, file string) {
-	if _, ok := t[name]; ok {
-		t[name][file] = true
+// Append takes the given RAML type name and parent file and appends the two to
+// the mapping of type names to source files.
+//
+// Example:
+//   Original State:
+//   {
+//     "Type1": {
+//       "file1.raml": true
+//     }
+//   }
+//
+//   Input 1:
+//   t.Append("Type1", "file2.raml")
+//
+//   Resulting State 1:
+//   {
+//     "Type1": {
+//       "file1.raml": true,
+//       "file2.raml": true,
+//     }
+//   }
+//
+//   Input 2:
+//   t.Append("Type2", "file1.raml")
+//
+//   Resulting State 2:
+//   {
+//     "Type1": {
+//       "file1.raml": true,
+//       "file2.raml": true,
+//     },
+//     "Type2": {
+//       "file1.raml": true,
+//     }
+//   }
+func (t TypeNameToParentFileMap) Append(ramlTypeName, parentFile string) {
+	if _, ok := t[ramlTypeName]; ok {
+		t[ramlTypeName][parentFile] = true
 	} else {
-		t[name] = map[string]bool{file: true}
+		t[ramlTypeName] = map[string]bool{parentFile: true}
 	}
 }
 
-func (t TypeToFiles) Merge(o TypeToFiles) {
+// Merge merges the contents of the given other TypeNameToParentFileMap into
+// the current TypeNameToParentFileMap.
+//
+// Example:
+//   Input 1:
+//   {
+//     "Type1": {
+//       "file1.raml": true,
+//     }
+//   }
+//
+//   Input 2:
+//   {
+//     "Type1": {
+//       "file1.raml": true,
+//       "file2.raml": true,
+//     }
+//     "Type2": {
+//       "file1.raml": true
+//     }
+//   }
+//
+//   Resulting State
+//   {
+//     "Type1": {
+//       "file1.raml": true,
+//       "file2.raml": true,
+//     },
+//     "Type2": {
+//       "file1.raml": true,
+//     }
+//   }
+func (t TypeNameToParentFileMap) Merge(o TypeNameToParentFileMap) {
 	for name, files := range o {
 		for file := range files {
 			t.Append(name, file)
@@ -48,7 +127,9 @@ func (t TypeToFiles) Merge(o TypeToFiles) {
 	}
 }
 
-func (t TypeToFiles) GetFilesFor(typeName string) (out []string) {
+// GetFilesFor returns a slice of filenames for files that contain a RAML type
+// with the given name.
+func (t TypeNameToParentFileMap) GetFilesFor(typeName string) (out []string) {
 	if mp, ok := t[typeName]; ok {
 		out = make([]string, 0, len(mp))
 		for file := range mp {
@@ -59,18 +140,18 @@ func (t TypeToFiles) GetFilesFor(typeName string) (out []string) {
 	return
 }
 
-// ResolveUses recursively ensures that every entry in the given RAML uses map
-// exists in the given caches.
+// ResolveUsesFiles recursively ensures that every entry in the given RAML
+// 'uses' map is a known file that exists in the given RAML caches.
 //
 // If the reference is to a file that did not previously exist in the given
-// caches, the path will be resolve and added to the caches.
-func ResolveUses(
+// caches, the path will be resolved and added to the caches.
+func ResolveUsesFiles(
 	dir string,
 	uses raml.StringMap,
 	files map[string]bool,
 	types *RamlFiles,
-) TypeToFiles {
-	out := make(TypeToFiles, uses.Len())
+) TypeNameToParentFileMap {
+	out := make(TypeNameToParentFileMap, uses.Len())
 
 	uses.ForEach(func(key string, path string) {
 		file := fixPath(dir, path)
@@ -93,7 +174,7 @@ func ResolveUses(
 		if dt != nil {
 			types.Types[file] = dt
 			if mp := ParseDTUses(file, dt); mp != nil {
-				out.Merge(ResolveUses(filepath.Dir(file), mp, files, types))
+				out.Merge(ResolveUsesFiles(filepath.Dir(file), mp, files, types))
 			}
 		} else if lib != nil {
 			types.Libs[file] = lib
@@ -101,7 +182,7 @@ func ResolveUses(
 				out.Append(name, file)
 			})
 
-			out.Merge(ResolveUses(filepath.Dir(file), lib.Uses(), files, types))
+			out.Merge(ResolveUsesFiles(filepath.Dir(file), lib.Uses(), files, types))
 		}
 	})
 

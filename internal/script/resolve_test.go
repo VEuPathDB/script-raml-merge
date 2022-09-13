@@ -1,15 +1,16 @@
 package script_test
 
 import (
-	"script-raml-merger/internal/script"
 	"testing"
+
+	"script-raml-merger/internal/script"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestTypeToFiles_Append(t *testing.T) {
-	Convey("TypeToFiles.Append", t, func() {
-		tmp := make(script.TypeToFiles, 10)
+	Convey("TypeNameToParentFileMap.Append", t, func() {
+		tmp := make(script.TypeNameToParentFileMap, 10)
 		tmp.Append("foo", "bar")
 
 		v, ok := tmp["foo"]
