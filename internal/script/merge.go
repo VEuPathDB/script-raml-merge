@@ -98,6 +98,11 @@ func cleanRef(prefix string) func(string, raml.DataType) {
 
 		logrus.Tracef("Cleaning type: %s", s)
 
+		if kind == nil {
+			logrus.Traceln("given DataType instance was nil")
+			return
+		}
+
 		if strings.HasPrefix(kind.Type(), prefix) {
 			kind.OverrideType(kind.Type()[len(prefix):])
 		}
