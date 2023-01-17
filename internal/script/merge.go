@@ -26,16 +26,16 @@ func merge(files map[string]bool, types *RamlFiles) raml.Library {
 	out := rbuild.NewLibrary()
 
 	// Recursively resolve all imports
-	for file, lib := range types.Libs {
+	types.Libs.ForEach(func(file string, lib raml.Library) {
 		conflicts.Merge(ResolveUsesFiles(filepath.Dir(file), lib.Uses(), files, types))
-	}
-	for file, dt := range types.Types {
+	})
+	types.Types.ForEach(func(file string, dt raml.DataType) {
 		if mp := ParseDTUses(file, dt); mp != nil {
 			conflicts.Merge(ResolveUsesFiles(filepath.Dir(file), mp, files, types))
 		}
-	}
+	})
 
-	for file, lib := range types.Libs {
+	types.Libs.ForEach(func(file string, lib raml.Library) {
 		logrus.Debugf("Processing library file: %s", file)
 
 		dir := filepath.Dir(file)
@@ -53,7 +53,7 @@ func merge(files map[string]bool, types *RamlFiles) raml.Library {
 					strings.ReplaceAll(def.Type(), "!include", ""),
 				))
 
-				if dt, ok := types.Types[path]; ok {
+				if dt, ok := types.Types.Get(path); ok {
 					out.Types().Put(name, dt)
 				} else {
 					out.Types().Put(name, def)
@@ -62,7 +62,7 @@ func merge(files map[string]bool, types *RamlFiles) raml.Library {
 				out.Types().Put(name, def)
 			}
 		})
-	}
+	})
 
 	err := false
 

@@ -51,8 +51,8 @@ func ProcessRaml(path string) string {
 
 func sortingHat(files FileIndex) (out *RamlFiles) {
 	out = &RamlFiles{
-		Libs:  make(map[string]raml.Library),
-		Types: make(map[string]raml.DataType),
+		Libs:  NewSortedLibraryMap(8),
+		Types: raml.NewDataTypeMap(32),
 	}
 
 	for path := range files {
@@ -101,7 +101,7 @@ func sortFile(path string, out *RamlFiles) {
 			logrus.Fatal(err)
 			panic(nil)
 		}
-		out.Libs[path] = tmp
+		out.Libs.Put(path, tmp)
 	} else if parts[2] == "DataType" {
 		logrus.Debugf("Sorted as typedef")
 		tmp := rbuild.NewAnyDataType()
@@ -110,7 +110,7 @@ func sortFile(path string, out *RamlFiles) {
 			logrus.Fatal(err)
 			panic(nil)
 		}
-		out.Types[path] = tmp
+		out.Types.Put(path, tmp)
 	} else {
 		logrus.Debugf("Failed to sort RAML file")
 		logrus.Debugf("Header: %s", parts)
@@ -118,6 +118,6 @@ func sortFile(path string, out *RamlFiles) {
 }
 
 type RamlFiles struct {
-	Libs  map[string]raml.Library
-	Types map[string]raml.DataType
+	Libs  *SortedLibraryMap
+	Types raml.DataTypeMap
 }

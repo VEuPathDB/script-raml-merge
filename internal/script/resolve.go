@@ -172,12 +172,12 @@ func ResolveUsesFiles(
 
 		// Record type
 		if dt != nil {
-			types.Types[file] = dt
+			types.Types.Put(file, dt)
 			if mp := ParseDTUses(file, dt); mp != nil {
 				out.Merge(ResolveUsesFiles(filepath.Dir(file), mp, files, types))
 			}
 		} else if lib != nil {
-			types.Libs[file] = lib
+			types.Libs.Put(file, lib)
 			lib.Types().ForEach(func(name string, _ raml.DataType) {
 				out.Append(name, file)
 			})
@@ -196,11 +196,11 @@ func resolve(file, dir string, files *RamlFiles) (raml.Library, raml.DataType) {
 
 	file = fixPath(dir, file)
 
-	if v, ok := files.Libs[file]; ok {
+	if v, ok := files.Libs.Get(file); ok {
 		return v, nil
 	}
 
-	if v, ok := files.Types[file]; ok {
+	if v, ok := files.Types.Get(file); ok {
 		return nil, v
 	}
 
