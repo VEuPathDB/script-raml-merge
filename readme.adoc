@@ -2,14 +2,13 @@
 
 image:https://github.com/VEuPathDB/script-raml-merge/workflows/Release/badge.svg[Release]
 
-Simple script to merge raml libraries into a single library more
-easily consumable by RAML tools that are not fully compliant
-with the spec.
+Simple script to merge raml libraries into a single library more easily
+consumable by RAML tools that are not fully compliant with the spec.
 
 .Usage
 [source, sh-session]
 ----
-$ ./merge-raml path/to/libraries
+$ ./merge-raml -x library.raml path/to/libraries
 #%RAML 1.0 Library
 
 types:
