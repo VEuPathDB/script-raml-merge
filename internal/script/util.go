@@ -1,6 +1,9 @@
 package script
 
 import (
+	"errors"
+	"os"
+
 	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml"
 	"github.com/Foxcapades/lib-go-yaml/v1/pkg/xyml"
 	"github.com/sirupsen/logrus"
@@ -36,4 +39,18 @@ func ParseDTUses(file string, dt raml.DataType) raml.StringMap {
 	dt.ExtraFacets().Delete("uses")
 
 	return mp
+}
+
+func MustStat(path string) os.FileInfo {
+	stat, err := os.Stat(path)
+
+	if errors.Is(err, os.ErrNotExist) {
+		logrus.Fatalf("Provided path does not exist: %s", path)
+		panic("unreachable")
+	} else if err != nil {
+		logrus.Fatalf("Could not stat path %s: %s", path, err)
+		panic("unreachable")
+	}
+
+	return stat
 }

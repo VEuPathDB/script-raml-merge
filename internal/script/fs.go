@@ -22,17 +22,25 @@ func getFiles(path string, exclusions []string) FileIndex {
 
 		logrus.Tracef("Examining path %s", path)
 
+		if isExcluded(path, exclusions) {
+			logrus.Debugf("Skipping %s because it is marked as excluded", path)
+
+			// If the path matched a directory, skip it entirely.
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+
+			return nil
+		}
+
+		// If we are currently on a directory, bail here, the next element will be
+		// the first file in the directory.
 		if info.IsDir() {
 			return nil
 		}
 
 		if !strings.HasSuffix(path, ".raml") {
 			logrus.Debugf("Skipping non-raml file %s", path)
-			return nil
-		}
-
-		if isExcluded(filepath.Base(path), exclusions) {
-			logrus.Debugf("Skipping %s because it is marked as excluded", path)
 			return nil
 		}
 

@@ -1,8 +1,8 @@
 package script
 
 import (
-	"errors"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml"
@@ -22,16 +22,13 @@ const generated = `
 `
 
 func ProcessRaml(path string, excluded []string) string {
-	stat, err := os.Stat(path)
-	if errors.Is(err, os.ErrNotExist) {
-		logrus.Fatalf("Provided path does not exist: %s", path)
-	} else if err != nil {
-		logrus.Fatalf("Could not stat path %s: %s", path, err)
-	}
+	stat := MustStat(path)
 
 	if !stat.IsDir() {
 		logrus.Fatalf("Provided path is not a directory: %s", path)
 	}
+
+	normalizeExclusions(path, excluded)
 
 	paths := getFiles(path, excluded)
 	types := sortingHat(paths)
@@ -44,10 +41,28 @@ func ProcessRaml(path string, excluded []string) string {
 	enc.SetIndent(2)
 
 	if err := enc.Encode(merge(paths, types)); err != nil {
-		logrus.Fatal(err)
+		logrus.Fatalf("Error while encoding the merged raml files: %s", err)
 	}
 
 	return out.String()
+}
+
+func normalizeExclusions(path string, exclusions []string) {
+	for i, p := range exclusions {
+		if filepath.IsAbs(p) {
+			continue
+		}
+
+		if fileExists(p) {
+			continue
+		}
+
+		relativeToSchemaDir := filepath.Join(path, p)
+		if fileExists(relativeToSchemaDir) {
+			logrus.Debugf("correcting path %s to %s", p, relativeToSchemaDir)
+			exclusions[i] = relativeToSchemaDir
+		}
+	}
 }
 
 func sortingHat(files FileIndex) (out *RamlFiles) {
@@ -69,7 +84,7 @@ func sortFile(path string, out *RamlFiles) {
 
 	file, err := os.Open(path)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Fatalf("Error while attempting to open file %s: %s", path, err)
 		panic(nil)
 	}
 	//goland:noinspection GoUnhandledErrorResult
@@ -78,7 +93,7 @@ func sortFile(path string, out *RamlFiles) {
 	dec := yaml.NewDecoder(file)
 	err = dec.Decode(node)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Fatalf("Error while attempting to decode file %s as YAML: %s", path, err)
 		panic(nil)
 	}
 
@@ -100,7 +115,7 @@ func sortFile(path string, out *RamlFiles) {
 		tmp := rbuild.NewLibrary()
 		err = tmp.UnmarshalYAML(node.Content[0])
 		if err != nil {
-			logrus.Fatal(err)
+			logrus.Fatalf("Error while attempting to parse YAML file %s: %s", path, err)
 			panic(nil)
 		}
 		out.Libs.Put(path, tmp)
@@ -109,7 +124,7 @@ func sortFile(path string, out *RamlFiles) {
 		tmp := rbuild.NewAnyDataType()
 		err = tmp.UnmarshalRAML(node.Content[0])
 		if err != nil {
-			logrus.Fatal(err)
+			logrus.Fatalf("Error while attempting to parse RAML file %s: %s", path, err)
 			panic(nil)
 		}
 		out.Types.Put(path, tmp)

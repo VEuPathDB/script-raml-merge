@@ -173,6 +173,9 @@ func fileExists(ref string) bool {
 	_, err := os.Stat(ref)
 	if os.IsNotExist(err) {
 		return false
+	} else if err != nil {
+		logrus.Fatalf("unexpected error when attempting to stat file %s: %s", ref, err)
+		panic("unreachable")
 	}
 	return true
 }
