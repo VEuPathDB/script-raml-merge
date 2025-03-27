@@ -1,6 +1,7 @@
 VERSION=$(shell git describe --tags 2>/dev/null || echo "snapshot")
 
 build:
+	go mod tidy
 	env CGO_ENABLED=0 GOOS=linux go build -o bin/merge-raml -ldflags "-X main.version=${VERSION}" cmd/main.go
 
 release:

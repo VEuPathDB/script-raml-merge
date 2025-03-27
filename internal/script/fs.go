@@ -8,11 +8,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type FileIndex map[string] bool
+type FileIndex map[string]bool
 
-// getFiles returns all the raml files present in the given directory and it's
-// sub-directories.
-func getFiles(path string) FileIndex {
+// getFiles returns all the raml files present in the given directory, and its
+// subdirectories.
+func getFiles(path string, exclusions []string) FileIndex {
 	files := make(FileIndex)
 
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
@@ -27,12 +27,12 @@ func getFiles(path string) FileIndex {
 		}
 
 		if !strings.HasSuffix(path, ".raml") {
-			logrus.Debugf("Skipping non-file path %s", path)
+			logrus.Debugf("Skipping non-raml file %s", path)
 			return nil
 		}
 
-		if filepath.Base(path) == "library.raml" {
-			logrus.Debugf("Skipping %s", path)
+		if isExcluded(filepath.Base(path), exclusions) {
+			logrus.Debugf("Skipping %s because it is marked as excluded", path)
 			return nil
 		}
 
@@ -45,4 +45,14 @@ func getFiles(path string) FileIndex {
 	}
 
 	return files
+}
+
+func isExcluded(name string, exclusions []string) bool {
+	for _, x := range exclusions {
+		if name == x {
+			return true
+		}
+	}
+
+	return false
 }

@@ -1,7 +1,7 @@
 package script
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -33,52 +33,54 @@ const (
 // than one type is defined with the same name in the scope of the RAML files.
 //
 // Example:
-//   {
-//     "MyRamlType": {
-//       "file1.raml": true,
-//     },
-//     "MyOtherRamlType": {
-//       "file1.raml": true,
-//       "file2.raml": true,
-//     }
-//   }
+//
+//	{
+//	  "MyRamlType": {
+//	    "file1.raml": true,
+//	  },
+//	  "MyOtherRamlType": {
+//	    "file1.raml": true,
+//	    "file2.raml": true,
+//	  }
+//	}
 type TypeNameToParentFileMap map[string]map[string]bool
 
 // Append takes the given RAML type name and parent file and appends the two to
 // the mapping of type names to source files.
 //
 // Example:
-//   Original State:
-//   {
-//     "Type1": {
-//       "file1.raml": true
-//     }
-//   }
 //
-//   Input 1:
-//   t.Append("Type1", "file2.raml")
+//	Original State:
+//	{
+//	  "Type1": {
+//	    "file1.raml": true
+//	  }
+//	}
 //
-//   Resulting State 1:
-//   {
-//     "Type1": {
-//       "file1.raml": true,
-//       "file2.raml": true,
-//     }
-//   }
+//	Input 1:
+//	t.Append("Type1", "file2.raml")
 //
-//   Input 2:
-//   t.Append("Type2", "file1.raml")
+//	Resulting State 1:
+//	{
+//	  "Type1": {
+//	    "file1.raml": true,
+//	    "file2.raml": true,
+//	  }
+//	}
 //
-//   Resulting State 2:
-//   {
-//     "Type1": {
-//       "file1.raml": true,
-//       "file2.raml": true,
-//     },
-//     "Type2": {
-//       "file1.raml": true,
-//     }
-//   }
+//	Input 2:
+//	t.Append("Type2", "file1.raml")
+//
+//	Resulting State 2:
+//	{
+//	  "Type1": {
+//	    "file1.raml": true,
+//	    "file2.raml": true,
+//	  },
+//	  "Type2": {
+//	    "file1.raml": true,
+//	  }
+//	}
 func (t TypeNameToParentFileMap) Append(ramlTypeName, parentFile string) {
 	if _, ok := t[ramlTypeName]; ok {
 		t[ramlTypeName][parentFile] = true
@@ -91,34 +93,35 @@ func (t TypeNameToParentFileMap) Append(ramlTypeName, parentFile string) {
 // the current TypeNameToParentFileMap.
 //
 // Example:
-//   Input 1:
-//   {
-//     "Type1": {
-//       "file1.raml": true,
-//     }
-//   }
 //
-//   Input 2:
-//   {
-//     "Type1": {
-//       "file1.raml": true,
-//       "file2.raml": true,
-//     }
-//     "Type2": {
-//       "file1.raml": true
-//     }
-//   }
+//	Input 1:
+//	{
+//	  "Type1": {
+//	    "file1.raml": true,
+//	  }
+//	}
 //
-//   Resulting State
-//   {
-//     "Type1": {
-//       "file1.raml": true,
-//       "file2.raml": true,
-//     },
-//     "Type2": {
-//       "file1.raml": true,
-//     }
-//   }
+//	Input 2:
+//	{
+//	  "Type1": {
+//	    "file1.raml": true,
+//	    "file2.raml": true,
+//	  }
+//	  "Type2": {
+//	    "file1.raml": true
+//	  }
+//	}
+//
+//	Resulting State
+//	{
+//	  "Type1": {
+//	    "file1.raml": true,
+//	    "file2.raml": true,
+//	  },
+//	  "Type2": {
+//	    "file1.raml": true,
+//	  }
+//	}
 func (t TypeNameToParentFileMap) Merge(o TypeNameToParentFileMap) {
 	for name, files := range o {
 		for file := range files {
@@ -208,7 +211,7 @@ func resolve(file, dir string, files *RamlFiles) (raml.Library, raml.DataType) {
 }
 
 func resolveLocal(file string) (raml.Library, raml.DataType) {
-	tmp, err := ioutil.ReadFile(file)
+	tmp, err := os.ReadFile(file)
 	if err != nil {
 		logrus.Error(err)
 		logrus.Fatal(errReadFail)
@@ -220,6 +223,7 @@ func resolveLocal(file string) (raml.Library, raml.DataType) {
 
 func resolveRemote(url string) (raml.Library, raml.DataType) {
 	res := simple.GetRequest(url).Submit()
+	//goland:noinspection GoUnhandledErrorResult
 	defer res.Close()
 
 	tmp, err := res.GetBody()

@@ -1,6 +1,7 @@
 package script
 
 import (
+	"errors"
 	"os"
 	"strings"
 
@@ -20,9 +21,9 @@ const generated = `
 
 `
 
-func ProcessRaml(path string) string {
+func ProcessRaml(path string, excluded []string) string {
 	stat, err := os.Stat(path)
-	if err == os.ErrNotExist {
+	if errors.Is(err, os.ErrNotExist) {
 		logrus.Fatalf("Provided path does not exist: %s", path)
 	} else if err != nil {
 		logrus.Fatalf("Could not stat path %s: %s", path, err)
@@ -32,7 +33,7 @@ func ProcessRaml(path string) string {
 		logrus.Fatalf("Provided path is not a directory: %s", path)
 	}
 
-	paths := getFiles(path)
+	paths := getFiles(path, excluded)
 	types := sortingHat(paths)
 
 	out := strings.Builder{}
@@ -51,7 +52,7 @@ func ProcessRaml(path string) string {
 
 func sortingHat(files FileIndex) (out *RamlFiles) {
 	out = &RamlFiles{
-		Libs:  NewSortedLibraryMap(8),
+		Libs:  NewSortedLibraryBuilder(len(files)),
 		Types: raml.NewDataTypeMap(32),
 	}
 
@@ -71,6 +72,7 @@ func sortFile(path string, out *RamlFiles) {
 		logrus.Fatal(err)
 		panic(nil)
 	}
+	//goland:noinspection GoUnhandledErrorResult
 	defer file.Close()
 
 	dec := yaml.NewDecoder(file)
@@ -118,6 +120,6 @@ func sortFile(path string, out *RamlFiles) {
 }
 
 type RamlFiles struct {
-	Libs  *SortedLibraryMap
+	Libs  *SortedLibraryBuilder
 	Types raml.DataTypeMap
 }
