@@ -34,3 +34,4 @@ jobs:
           merge-raml-darwin.${{ github.ref_name }}.tar.gz
           merge-raml-linux.${{ github.ref_name }}.tar.gz
           merge-raml-windows.${{ github.ref_name }}.zip
+        generate_release_notes: true
