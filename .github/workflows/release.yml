@@ -31,7 +31,7 @@ jobs:
       with:
         draft: false
         files: |
-          merge-raml-darwin.${{ github.ref_name }}.tar.gz
-          merge-raml-linux.${{ github.ref_name }}.tar.gz
-          merge-raml-windows.${{ github.ref_name }}.zip
+          bin/merge-raml-darwin.${{ github.ref_name }}.tar.gz
+          bin/merge-raml-linux.${{ github.ref_name }}.tar.gz
+          bin/merge-raml-windows.${{ github.ref_name }}.zip
         generate_release_notes: true
