@@ -181,7 +181,7 @@ func ResolveUsesFiles(
 			}
 		} else if lib != nil {
 			types.Libs.Put(file, lib)
-			lib.Types().ForEach(func(name string, _ raml.DataType) {
+			lib.Types().ForEach(func(name string, dt raml.DataType) {
 				out.Append(name, file)
 			})
 
@@ -200,10 +200,12 @@ func resolve(file, dir string, files *RamlFiles) (raml.Library, raml.DataType) {
 	file = fixPath(dir, file)
 
 	if v, ok := files.Libs.Get(file); ok {
+		logrus.Tracef("resolved file %s as a library", file)
 		return v, nil
 	}
 
 	if v, ok := files.Types.Get(file); ok {
+		logrus.Tracef("resolved file %s as a type def", file)
 		return nil, v
 	}
 
@@ -211,6 +213,8 @@ func resolve(file, dir string, files *RamlFiles) (raml.Library, raml.DataType) {
 }
 
 func resolveLocal(file string) (raml.Library, raml.DataType) {
+	logrus.Tracef("attempting to resolve local file: %s", file)
+
 	tmp, err := os.ReadFile(file)
 	if err != nil {
 		logrus.Error(err)
@@ -222,6 +226,8 @@ func resolveLocal(file string) (raml.Library, raml.DataType) {
 }
 
 func resolveRemote(url string) (raml.Library, raml.DataType) {
+	logrus.Tracef("attempting to resolve remote file: %s", url)
+
 	res := simple.GetRequest(url).Submit()
 	//goland:noinspection GoUnhandledErrorResult
 	defer res.Close()
@@ -279,6 +285,12 @@ func resolveParse(in []byte, ref string) (lib raml.Library, dt raml.DataType) {
 	default:
 		logrus.Fatal(errBadType + kind)
 		panic(nil)
+	}
+
+	if lib != nil {
+		logrus.Debugf("resolved ref %s as a library", ref)
+	} else {
+		logrus.Debugf("resolved ref %s as a data type", ref)
 	}
 
 	return

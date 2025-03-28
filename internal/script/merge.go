@@ -25,10 +25,8 @@ func merge(files map[string]bool, types *RamlFiles) raml.Library {
 
 	out := rbuild.NewLibrary()
 
-	sortedLibs := types.Libs.Build()
-
 	// Recursively resolve all imports
-	for file, lib := range sortedLibs.Iterator() {
+	for file, lib := range types.Libs.Iterator() {
 		conflicts.Merge(ResolveUsesFiles(filepath.Dir(file), lib.Uses(), files, types))
 	}
 
@@ -38,7 +36,7 @@ func merge(files map[string]bool, types *RamlFiles) raml.Library {
 		}
 	})
 
-	for file, lib := range sortedLibs.Iterator() {
+	for file, lib := range types.Libs.Iterator() {
 		logrus.Debugf("Processing library file: %s", file)
 
 		dir := filepath.Dir(file)

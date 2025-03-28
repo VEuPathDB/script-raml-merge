@@ -26,42 +26,16 @@ func (s *SortedLibraryBuilder) Get(key string) (raml.Library, bool) {
 	return out, ok
 }
 
-func (s *SortedLibraryBuilder) Build() SortedLibrary {
+func (s *SortedLibraryBuilder) Iterator() iter.Seq2[string, raml.Library] {
 	ordered := make([]string, 0, len(s.m))
 	for k := range s.m {
 		ordered = append(ordered, k)
 	}
+
 	slices.Sort(ordered)
 
-	return SortedLibrary{ordered, s.m}
-}
-
-type SortedLibrary struct {
-	o []string
-	m map[string]raml.Library
-}
-
-func (s *SortedLibrary) Get(key string) (value raml.Library, found bool) {
-	value, found = s.m[key]
-	return
-}
-
-func (s *SortedLibrary) Has(key string) bool {
-	_, found := s.m[key]
-	return found
-}
-
-func (s *SortedLibrary) MustGet(key string) raml.Library {
-	if value, found := s.m[key]; found {
-		return value
-	} else {
-		panic("SortedLibraryBuilder.MustGet called requesting a value that was not present in the map")
-	}
-}
-
-func (s *SortedLibrary) Iterator() iter.Seq2[string, raml.Library] {
 	return func(yield func(string, raml.Library) bool) {
-		for _, k := range s.o {
+		for _, k := range ordered {
 			yield(k, s.m[k])
 		}
 	}

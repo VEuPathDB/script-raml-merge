@@ -40,7 +40,7 @@ func getFiles(path string, exclusions []string) FileIndex {
 		}
 
 		if !strings.HasSuffix(path, ".raml") {
-			logrus.Debugf("Skipping non-raml file %s", path)
+			logrus.Tracef("Skipping non-raml file %s", path)
 			return nil
 		}
 
