@@ -23,10 +23,11 @@ func main() {
 
 	cli.Command().
 		WithFlag(cli.ShortFlag('x').
-			WithDescription("Exclude file(s).  May be specified more than once.").
+			WithDescription("Exclude file(s).\nIf this flag is not used, the default behavior is to exclude 'library.raml'.\n\nMay be specified more than once.").
 			WithArgument(cli.Argument().
 				WithName("file").
 				WithBinding(&exclusions).
+				WithDefault("library.raml").
 				Require())).
 		WithFlag(cli.ShortFlag('v').
 			WithDescription("Verbose process logging").
