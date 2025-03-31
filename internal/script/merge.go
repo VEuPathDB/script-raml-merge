@@ -27,12 +27,12 @@ func merge(files map[string]bool, types *RamlFiles) raml.Library {
 
 	// Recursively resolve all imports
 	for file, lib := range types.Libs.Iterator() {
-		conflicts.Merge(ResolveUsesFiles(filepath.Dir(file), lib.Uses(), files, types))
+		conflicts.Merge(ResolveUsesFiles(file, lib.Uses(), files, types))
 	}
 
 	types.Types.ForEach(func(file string, dt raml.DataType) {
 		if mp := ParseDTUses(file, dt); mp != nil {
-			conflicts.Merge(ResolveUsesFiles(filepath.Dir(file), mp, files, types))
+			conflicts.Merge(ResolveUsesFiles(file, mp, files, types))
 		}
 	})
 

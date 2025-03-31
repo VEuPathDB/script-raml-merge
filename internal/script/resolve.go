@@ -149,12 +149,13 @@ func (t TypeNameToParentFileMap) GetFilesFor(typeName string) (out []string) {
 // If the reference is to a file that did not previously exist in the given
 // caches, the path will be resolved and added to the caches.
 func ResolveUsesFiles(
-	dir string,
+	sourceFile string,
 	uses raml.StringMap,
 	files map[string]bool,
 	types *RamlFiles,
 ) TypeNameToParentFileMap {
 	out := make(TypeNameToParentFileMap, uses.Len())
+	dir := filepath.Dir(sourceFile)
 
 	uses.ForEach(func(key string, path string) {
 		file := fixPath(dir, path)
@@ -164,7 +165,7 @@ func ResolveUsesFiles(
 			return
 		}
 
-		lib, dt := resolve(path, dir, types)
+		lib, dt := resolve(path, dir, sourceFile, types)
 
 		// Record resolved file
 		if path[:4] == "http" {
@@ -177,7 +178,7 @@ func ResolveUsesFiles(
 		if dt != nil {
 			types.Types.Put(file, dt)
 			if mp := ParseDTUses(file, dt); mp != nil {
-				out.Merge(ResolveUsesFiles(filepath.Dir(file), mp, files, types))
+				out.Merge(ResolveUsesFiles(file, mp, files, types))
 			}
 		} else if lib != nil {
 			types.Libs.Put(file, lib)
@@ -185,14 +186,14 @@ func ResolveUsesFiles(
 				out.Append(name, file)
 			})
 
-			out.Merge(ResolveUsesFiles(filepath.Dir(file), lib.Uses(), files, types))
+			out.Merge(ResolveUsesFiles(file, lib.Uses(), files, types))
 		}
 	})
 
 	return out
 }
 
-func resolve(file, dir string, files *RamlFiles) (raml.Library, raml.DataType) {
+func resolve(file, dir, sourceFile string, files *RamlFiles) (raml.Library, raml.DataType) {
 	if file[:4] == "http" {
 		return resolveRemote(file)
 	}
@@ -209,16 +210,15 @@ func resolve(file, dir string, files *RamlFiles) (raml.Library, raml.DataType) {
 		return nil, v
 	}
 
-	return resolveLocal(file)
+	return resolveLocal(file, sourceFile)
 }
 
-func resolveLocal(file string) (raml.Library, raml.DataType) {
+func resolveLocal(file, source string) (raml.Library, raml.DataType) {
 	logrus.Tracef("attempting to resolve local file: %s", file)
 
 	tmp, err := os.ReadFile(file)
 	if err != nil {
-		logrus.Error(err)
-		logrus.Fatal(errReadFail)
+		logrus.Fatalf("failed to read contents of file %s referenced by file %s: %s", file, RelativePath(source, CWD()), err)
 		panic(nil)
 	}
 

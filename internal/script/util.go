@@ -3,6 +3,7 @@ package script
 import (
 	"errors"
 	"os"
+	"path/filepath"
 
 	"github.com/Foxcapades/lib-go-raml/v0/pkg/raml"
 	"github.com/Foxcapades/lib-go-yaml/v1/pkg/xyml"
@@ -39,6 +40,24 @@ func ParseDTUses(file string, dt raml.DataType) raml.StringMap {
 	dt.ExtraFacets().Delete("uses")
 
 	return mp
+}
+
+func RelativePath(path, relativeTo string) string {
+	if out, err := filepath.Rel(relativeTo, path); err != nil {
+		logrus.Fatalf("failed to relativise path %s against path %s: %s", path, relativeTo, err)
+		panic("unreachable")
+	} else {
+		return out
+	}
+}
+
+func CWD() string {
+	if dir, err := os.Getwd(); err != nil {
+		logrus.Fatalf("failed to get current working directory: %s", err)
+		panic("unreachable")
+	} else {
+		return dir
+	}
 }
 
 func MustStat(path string) os.FileInfo {
