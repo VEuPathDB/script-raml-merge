@@ -3,6 +3,7 @@ package script
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -23,7 +24,7 @@ const (
 func merge(files map[string]bool, types *RamlFiles) raml.Library {
 	conflicts := make(TypeNameToParentFileMap, 100)
 
-	out := rbuild.NewLibrary()
+	builder := rbuild.NewLibrary()
 
 	// Recursively resolve all imports
 	for file, lib := range types.Libs.Iterator() {
@@ -55,12 +56,12 @@ func merge(files map[string]bool, types *RamlFiles) raml.Library {
 				))
 
 				if dt, ok := types.Types.Get(path); ok {
-					out.Types().Put(name, dt)
+					builder.Types().Put(name, dt)
 				} else {
-					out.Types().Put(name, def)
+					builder.Types().Put(name, def)
 				}
 			} else {
-				out.Types().Put(name, def)
+				builder.Types().Put(name, def)
 			}
 		})
 	}
@@ -78,6 +79,17 @@ func merge(files map[string]bool, types *RamlFiles) raml.Library {
 
 	if err {
 		logrus.Fatalf(logErrFatal)
+	}
+
+	keys := make([]string, 0, builder.Types().Len())
+	builder.Types().ForEach(func(k string, _ raml.DataType) { keys = append(keys, k) })
+
+	sort.Strings(keys)
+
+	out := rbuild.NewLibrary()
+	for _, key := range keys {
+		val, _ := builder.Types().Get(key)
+		out.Types().Put(key, val)
 	}
 
 	return out
