@@ -102,7 +102,7 @@ func sortFile(path string, out *RamlFiles) {
 		return
 	}
 
-	parts := strings.Fields(node.HeadComment)
+	parts := strings.Fields(getHeadComment(node))
 	logrus.Debug(node)
 	if len(parts) < 3 {
 		logrus.Tracef("Header: %s", parts)
@@ -137,4 +137,16 @@ func sortFile(path string, out *RamlFiles) {
 type RamlFiles struct {
 	Libs  *SortedLibraryBuilder
 	Types raml.DataTypeMap
+}
+
+func getHeadComment(node *yaml.Node) string {
+	if len(node.HeadComment) > 0 {
+		return node.HeadComment
+	}
+
+	if len(node.Content) > 0 && len(node.Content[0].HeadComment) > 0 {
+		return node.Content[0].HeadComment
+	}
+
+	return ""
 }
